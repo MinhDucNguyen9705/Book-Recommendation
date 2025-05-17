@@ -1,90 +1,92 @@
+import mlflow
 import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+from mlflow.models import infer_signature
 from model import NeuMF, GMF, MLP
-import argparse
-import tensorflow as tf
-from tensorflow import keras
 from utils import load_data, preprocess_data, split_data
-import numpy as np
-import os 
+from train import parse_options, train_model
+import tensorflow as tf
 
-class NeuralMatrixFactoration():
-    def __init__(self, weight_path, interaction_file, book_file):
-        self.data, self.books = load_data(interaction_file, book_file)
-        self.data, self.books, self.user_encoder, self.book_encoder, self.genre_columns = preprocess_data(self.data, self.books)
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    rmse = mean_squared_error(y_test, y_pred) ** 0.5
+    return rmse, y_pred
 
-        NUM_USERS = len(self.data['user_id'].unique())
-        NUM_ITEMS = len(self.data['book_id'].unique())
-        NUM_GENRES = len(self.genre_columns)
-        LATENT_DIM = 100
-        LAYERS = [128, 64, 64]
-        REGS = [1e-6, 1e-6, 1e-6, 1e-6, 1e-6]
+def log_model_to_mlflow(model, X_train, rmse, args):
+    mlflow.set_tracking_uri("databricks")
+    mlflow.set_experiment("/Users/uytbvn@gmail.com/MyExperiment")  
+    mlflow.login()
 
-        self.model = NeuMF(num_users=NUM_USERS, num_items=NUM_ITEMS, num_genres=NUM_GENRES, latent_dim=LATENT_DIM, layers_=LAYERS, regs=REGS)
-        self.model.load_weights(weight_path)
+    with mlflow.start_run() as run:
+        mlflow.log_param("learning_rate", args.learning_rate)
+        mlflow.log_param("epochs", args.epochs)
+        mlflow.log_param("batch_size", args.batch_size)
+        mlflow.log_param("latent_dim", args.latent_dim)
+        mlflow.log_param("layers", args.layers)
+        mlflow.log_param("regularization", args.regularization)
+        mlflow.log_metric("accuracy", rmse)
 
-    def get_user_book_pair_rating(self, user_id, book_id):
+        signature = infer_signature(X_train, model.predict(X_train))
 
-        user_input = np.array([[user_id]])
-        book_input = np.array([[book_id]])
+        mlflow.tensorflow.log_model(
+            model=model,
+            artifact_path="neumf_model",
+            signature=signature,
+            input_example=X_train[:5]
+        )
 
-        user_input = self.user_encoder.transform(user_input)
-        book_input = self.book_encoder.transform(book_input)
-        
-        genre = self.books[self.books['book_id'] == book_id][self.genre_columns].values
-        genre_input = np.array([genre]).reshape((-1,10))
+        return run.info.run_id
 
-        print(user_input.shape)
-        print(book_input.shape)
-        print(genre_input.shape)
+def load_model_and_predict(run_id, X_test):
+    model_uri = f"runs:/{run_id}/neumf_model"
+    loaded_model = mlflow.tensorflow.load_model(model_uri)
+    return loaded_model.predict(X_test)
 
-        rating = self.model.predict([user_input, book_input, genre_input], verbose=0)
+def main():
+    args = parse_options()
 
-        return rating[0][0]
+    data, books = load_data('interaction.csv', 'final_books.csv')
+    data, books, user_encoder, book_encoder, genre_columns = preprocess_data(data, books)
+    train_data, val_data, test_data = split_data(data, genre_columns)
 
-    def get_user_ratings(self, user_id):
+    X_train_user, X_train_book, X_train_genre, y_train = train_data
+    X_val_user, X_val_book, X_val_genre, y_val = val_data
+    X_test_user, X_test_book, X_test_genre, y_test = test_data
+    X_train = [X_train_user, X_train_book, X_train_genre]
+    X_val = [X_val_user, X_val_book, X_val_genre]
+    X_test = [X_test_user, X_test_book, X_test_genre]
 
-        user_input = np.array([[user_id]])
-        user_input = self.user_encoder.transform(user_input)
+    NUM_USERS = len(data['user_id'].unique())
+    NUM_ITEMS = len(data['book_id'].unique())
+    NUM_GENRES = len(genre_columns)
+    LATENT_DIM = args.latent_dim
+    LAYERS = args.layers
+    REGULARIZATION = [args.regularization for _ in range (5)]
 
-        values = self.books[['book_id'] + list(self.genre_columns)].values
-        book_ids = values[:, 0]
-        genre = values[:, 1:]
-        book_input = self.book_encoder.transform(book_ids)
-        book_input = np.expand_dims(np.array(book_input), axis=1)
-        genre_input = np.array([genre]).reshape((-1,10))
-        user_input = np.full((book_input.shape[0], 1), user_input)
-        predictions = self.model.predict([user_input, book_input, genre_input], verbose=0)
-        book_ids_flat = book_ids.flatten()
-        predictions_flat = predictions.flatten()
-        
-        book_pred_dict = dict(zip(book_ids_flat, predictions_flat))
-
-        return book_pred_dict
-
-    def get_top_k_recommendations(self, user_id, k=10):
-        book_pred_dict = self.get_user_ratings(user_id)
-        sorted_books = sorted(book_pred_dict.items(), key=lambda x: x[1], reverse=True)
-        top_k_books = sorted_books[:k]
-        return top_k_books
+    model = NeuMF(num_users=NUM_USERS, num_items=NUM_ITEMS, num_genres=NUM_GENRES, latent_dim=LATENT_DIM, layers_=LAYERS, regs=REGULARIZATION)
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=args.learning_rate), 
+                  loss='mse', 
+                  metrics=[tf.keras.metrics.RootMeanSquaredError()])
+    train_model(model, train_data, val_data,
+                epochs=args.epochs,
+                batch_size=args.batch_size,
+                learning_rate=args.learning_rate)
     
-if __name__ == "__main__":
-    weight_path = 'NeuMF.weights.h5'
-    interaction_file = 'interaction.csv'
-    book_file = 'final_books.csv'
+    rmse, y_pred = evaluate_model(model, X_test, y_test)
+    print(f"Root Mean Squared Error: {rmse:.4f}")
 
-    df = pd.read_csv(interaction_file)
+    run_id = log_model_to_mlflow(model, X_train, rmse, args)
+    print(f"Model logged under run ID: {run_id}")
+
+    predictions = load_model_and_predict(run_id, X_test)
+
+    df = pd.DataFrame(X_test, columns=['user_id', 'book_id', 'genre'])
+    df["user_id"] = user_encoder.inverse_transform(X_test_user.flatten())
+    df["book_id"] = book_encoder.inverse_transform(X_test_book.flatten()) 
+    df["actual"] = y_test
+    df["predicted"] = predictions
     print(df.head())
 
-    ncf = NeuralMatrixFactoration(weight_path, interaction_file, book_file)
-    user_id = np.random.choice(ncf.data['user_id'].unique())
-    book_id = np.random.choice(ncf.data['book_id'].unique())   
-    # rating = ncf.get_user_ratings(user_id)
-    # print(f"Predicted rating for user {user_id} and book {book_id}: {rating}")
-    # print(f"Predicted ratings for user {user_id}:")
-    # for book_id, rating in rating.items():
-    #     print(f"Book ID: {book_id}, Predicted Rating: {rating}")
-
-    top_k_books = ncf.get_top_k_recommendations(user_id, k=10)
-    print(f"Top {len(top_k_books)} recommendations for user {user_id}:")
-    for book_id, rating in top_k_books:
-        print(f"Book ID: {book_id}, Predicted Rating: {rating}")
+if __name__ == "__main__":
+    main()
