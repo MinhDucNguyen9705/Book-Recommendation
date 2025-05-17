@@ -30,30 +30,20 @@ def preprocess_data(ratings, books):
     genre_df = pd.DataFrame(genre_encoded, columns=genre_columns, index=books.index)
     books = pd.concat([books.drop(columns=['most_tagged']), genre_df], axis=1)
 
-    return ratings, books, user_encoder, book_encoder, genre_columns
+    return ratings, books, user_encoder, book_encoder, genre_encoder, genre_columns
 
 def split_data(data, genre_columns, test_size=0.2):
     train_df, test_df = train_test_split(data, stratify=data['user_id'], test_size=0.2, random_state=42)
-    train_df, val_df = train_test_split(train_df,
-                                stratify=train_df['user_id'], 
-                                test_size=0.1875,
-                                random_state=42)
 
     X_train_user = train_df['user'].values.reshape(-1, 1)
     X_train_book = train_df['book'].values.reshape(-1, 1)
     X_train_genre = train_df[genre_columns].values
     y_train = train_df['rating'].values
 
-    X_val_user = val_df['user'].values.reshape(-1, 1)
-    X_val_book = val_df['book'].values.reshape(-1, 1)
-    X_val_genre = val_df[genre_columns].values
-    y_val = val_df['rating'].values
-
     X_test_user = test_df['user'].values.reshape(-1, 1)
     X_test_book = test_df['book'].values.reshape(-1, 1)
     X_test_genre = test_df[genre_columns].values
     y_test = test_df['rating'].values
 
-    return (X_train_user, X_train_book, X_train_genre, y_train), \
-           (X_val_user, X_val_book, X_val_genre, y_val), \
+    return train_df, test_df, (X_train_user, X_train_book, X_train_genre, y_train), \
            (X_test_user, X_test_book, X_test_genre, y_test)

@@ -37,11 +37,21 @@ def train_model(model, train_data, val_data, epochs=10, batch_size=256, learning
                   loss='mse', 
                   metrics=[tf.keras.metrics.RootMeanSquaredError()])
     
+    checkpoint = tf.keras.callbacks.ModelCheckpoint(
+        filepath='NeuMF.weights.h5', 
+        monitor='val_root_mean_squared_error', 
+        save_best_only=True,   
+        save_weights_only=True,
+        mode='min',                 
+        verbose=1            
+    )
+    
     # Train the model
     history = model.fit([X_train_user, X_train_book, X_train_genre], y_train,
                         validation_data=([X_val_user, X_val_book, X_val_genre], y_val), 
                         epochs=epochs, 
-                        batch_size=batch_size)
+                        batch_size=batch_size,
+                        callbacks=[checkpoint])
     
     return history
 
@@ -50,9 +60,10 @@ if __name__ == "__main__":
     args = parse_options()
     
     data, books = load_data('interaction.csv', 'final_books.csv')
-    data, books, user_encoder, book_encoder, genre_columns = preprocess_data(data, books)
+    data, books, user_encoder, book_encoder, genre_encoder, genre_columns = preprocess_data(data, books)
 
-    train_data, val_data, test_data = split_data(data, genre_columns)
+    train_df, test_df, train_data, test_data = split_data(data, genre_columns, test_size=0.2)
+    train_df, val_df, train_data, val_data = split_data(train_df, genre_columns, test_size=0.1875)
 
     NUM_USERS = len(data['user_id'].unique())
     NUM_ITEMS = len(data['book_id'].unique())
@@ -62,7 +73,7 @@ if __name__ == "__main__":
     REGULARIZATION = [args.regularization for _ in range (5)]
 
     # Create the model 
-    model = NeuMF(num_users=NUM_USERS, num_items=NUM_ITEMS, num_genres=NUM_GENRES, layers_=LAYERS, regs=REGULARIZATION)
+    model = NeuMF(num_users=NUM_USERS, num_items=NUM_ITEMS, num_genres=NUM_GENRES, latent_dim=LATENT_DIM, layers_=LAYERS, regs=REGULARIZATION)
     
     # Train the model with command line arguments
     train_model(model, train_data, val_data,
