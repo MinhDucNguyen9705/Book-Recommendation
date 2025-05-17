@@ -7,8 +7,8 @@ def init_normal():
     
 class GMF(layers.Layer):
 
-    def __init__(self, num_users, num_items, latent_dim, regs=[0, 0]):
-        super(GMF, self).__init__()
+    def __init__(self, num_users, num_items, latent_dim, regs=[0, 0], **kwargs):
+        super(GMF, self).__init__(**kwargs)
         
         self.user_embedding = layers.Embedding(
                                                 input_dim=num_users, 
@@ -42,8 +42,8 @@ class GMF(layers.Layer):
         
 class MLP(layers.Layer):
 
-    def __init__(self, num_users, num_items, num_genres, layers_=[20,10], regs=[0, 0, 0]):
-        super(MLP, self).__init__()
+    def __init__(self, num_users, num_items, num_genres, layers_=[20,10], regs=[0, 0, 0], **kwargs):
+        super(MLP, self).__init__(**kwargs)
         self.num_layers = len(layers_)
 
         self.user_embedding = layers.Embedding(
@@ -94,11 +94,14 @@ def NeuMF(num_users, num_items, num_genres, latent_dim=10, layers_=[10], regs=[0
     item_input = layers.Input(shape=(1,), dtype='int32', name='item_input')
     genre_input = layers.Input(shape=(num_genres,), dtype='float32', name='genre_input')
 
-    mf_vector = GMF(num_users, num_items, latent_dim, regs[:2])([user_input, item_input])
-    mlp_vector = MLP(num_users, num_items, num_genres, layers_, regs[2:])([user_input, item_input, genre_input])
+    mf_vector = GMF(num_users, num_items, latent_dim, regs[:2], name='GMF')([user_input, item_input])
+    mlp_vector = MLP(num_users, num_items, num_genres, layers_, regs[2:], name='MLP')([user_input, item_input, genre_input])
 
-    predict_vector = layers.Concatenate()([mf_vector, mlp_vector])
-    prediction = layers.Dense(1, activation='sigmoid')(predict_vector)*4+1
+    predict_vector = layers.Concatenate(name='concatenate')([mf_vector, mlp_vector])
+    # predict_vector = mlp_vector
+    prediction = layers.Dense(1, activation='sigmoid', name='output')(predict_vector)*4+1
+    # prediction = layers.Dense(1)(predict_vector)
+    # prediction = layers.Lambda(lambda x: tf.clip_by_value(x, 1.0, 5.0))(prediction)
     
     model = keras.Model(inputs=[user_input, item_input, genre_input], outputs=prediction)
 

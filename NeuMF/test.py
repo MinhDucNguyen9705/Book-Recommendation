@@ -25,7 +25,7 @@ def log_model_to_mlflow(model, X_train, rmse, args):
         mlflow.log_param("latent_dim", args.latent_dim)
         mlflow.log_param("layers", args.layers)
         mlflow.log_param("regularization", args.regularization)
-        mlflow.log_metric("accuracy", rmse)
+        mlflow.log_metric("RMSE", rmse)
 
         signature = infer_signature(X_train, model.predict(X_train))
 
@@ -47,12 +47,15 @@ def main():
     args = parse_options()
 
     data, books = load_data('interaction.csv', 'final_books.csv')
-    data, books, user_encoder, book_encoder, genre_columns = preprocess_data(data, books)
-    train_data, val_data, test_data = split_data(data, genre_columns)
+    data, books, user_encoder, book_encoder, _, genre_columns = preprocess_data(data, books)
+
+    train_df, test_df, train_data, test_data = split_data(data, genre_columns, test_size=0.2)
+    train_df, val_df, train_data, val_data = split_data(train_df, genre_columns, test_size=0.1875)
 
     X_train_user, X_train_book, X_train_genre, y_train = train_data
     X_val_user, X_val_book, X_val_genre, y_val = val_data
     X_test_user, X_test_book, X_test_genre, y_test = test_data
+
     X_train = [X_train_user, X_train_book, X_train_genre]
     X_val = [X_val_user, X_val_book, X_val_genre]
     X_test = [X_test_user, X_test_book, X_test_genre]
