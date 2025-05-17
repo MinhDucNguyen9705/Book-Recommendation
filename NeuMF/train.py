@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     args = parse_options()
     
-    data = load_data('interaction.csv', 'final_books.csv')
+    data = load_data('data/interaction.csv', 'data/final_books.csv')
     data, genre_columns = preprocess_data(data)
 
     train_data, val_data, test_data = split_data(data, genre_columns)
