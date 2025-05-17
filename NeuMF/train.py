@@ -33,7 +33,9 @@ def train_model(model, train_data, val_data, epochs=10, batch_size=256, learning
     X_val_user, X_val_book, X_val_genre, y_val = val_data
 
     # Compile the model
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), loss='mse', metrics=[tf.keras.metrics.RootMeanSquaredError()])
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), 
+                  loss='mse', 
+                  metrics=[tf.keras.metrics.RootMeanSquaredError()])
     
     # Train the model
     history = model.fit([X_train_user, X_train_book, X_train_genre], y_train,
@@ -47,8 +49,8 @@ if __name__ == "__main__":
 
     args = parse_options()
     
-    data = load_data('data/interaction.csv', 'data/final_books.csv')
-    data, genre_columns = preprocess_data(data)
+    data, books = load_data('interaction.csv', 'final_books.csv')
+    data, books, user_encoder, book_encoder, genre_columns = preprocess_data(data, books)
 
     train_data, val_data, test_data = split_data(data, genre_columns)
 

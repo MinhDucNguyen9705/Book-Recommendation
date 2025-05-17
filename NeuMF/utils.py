@@ -10,27 +10,27 @@ def load_data(interaction_file, book_file):
     ratings = pd.read_csv(interaction_file, index_col=0)
     books = pd.read_csv(book_file, index_col=0)
     ratings = ratings.merge(books, on='book_id')
-    return ratings
+    return ratings, books
 
-def preprocess_data(data):
+def preprocess_data(ratings, books):
     user_encoder = LabelEncoder()
     book_encoder = LabelEncoder()
     genre_encoder = OneHotEncoder(sparse_output=False)
 
-    data['user'] = user_encoder.fit_transform(data['user_id'])
-    data['book'] = book_encoder.fit_transform(data['book_id'])
-    genre_encoded = genre_encoder.fit_transform(data[['most_tagged']])
+    ratings['user'] = user_encoder.fit_transform(ratings['user_id'])
+    ratings['book'] = book_encoder.fit_transform(ratings['book_id'])
+    genre_encoded = genre_encoder.fit_transform(ratings[['most_tagged']])
 
-    # Create column names for one-hot encoded genres
     genre_columns = genre_encoder.get_feature_names_out(['most_tagged'])
+    genre_df = pd.DataFrame(genre_encoded, columns=genre_columns, index=ratings.index)
+    ratings = pd.concat([ratings.drop(columns=['most_tagged']), genre_df], axis=1)
 
-    # Create a DataFrame for genre one-hot
-    genre_df = pd.DataFrame(genre_encoded, columns=genre_columns, index=data.index)
+    genre_encoded = genre_encoder.transform(books[['most_tagged']])
+    genre_columns = genre_encoder.get_feature_names_out(['most_tagged'])
+    genre_df = pd.DataFrame(genre_encoded, columns=genre_columns, index=books.index)
+    books = pd.concat([books.drop(columns=['most_tagged']), genre_df], axis=1)
 
-    # Merge back into the original DataFrame
-    data = pd.concat([data.drop(columns=['most_tagged']), genre_df], axis=1)
-
-    return data, genre_columns
+    return ratings, books, user_encoder, book_encoder, genre_columns
 
 def split_data(data, genre_columns, test_size=0.2):
     train_df, test_df = train_test_split(data, stratify=data['user_id'], test_size=0.2, random_state=42)
