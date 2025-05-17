@@ -46,7 +46,7 @@ def load_model_and_predict(run_id, X_test):
 def main():
     args = parse_options()
 
-    data, books = load_data('interaction.csv', 'final_books.csv')
+    data, books = load_data('../data/interaction.csv', '../data/final_books.csv')
     data, books, user_encoder, book_encoder, _, genre_columns = preprocess_data(data, books)
 
     train_df, test_df, train_data, test_data = split_data(data, genre_columns, test_size=0.2)

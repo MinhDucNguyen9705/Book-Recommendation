@@ -38,7 +38,7 @@ def train_model(model, train_data, val_data, epochs=10, batch_size=256, learning
                   metrics=[tf.keras.metrics.RootMeanSquaredError()])
     
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        filepath='NeuMF.weights.h5', 
+        filepath='../weights/NeuMF.weights.h5', 
         monitor='val_root_mean_squared_error', 
         save_best_only=True,   
         save_weights_only=True,
@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     args = parse_options()
     
-    data, books = load_data('interaction.csv', 'final_books.csv')
+    data, books = load_data('../data/interaction.csv', '../data/final_books.csv')
     data, books, user_encoder, book_encoder, genre_encoder, genre_columns = preprocess_data(data, books)
 
     train_df, test_df, train_data, test_data = split_data(data, genre_columns, test_size=0.2)
