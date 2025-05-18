@@ -1,6 +1,7 @@
 import pickle
 import pandas as pd
 from preprocessing_data import preprocess_text, vectorize_text
+from joblib import load
 
 def predict_books(user_id, books, ratings, his, vocab):
     rate = {}
@@ -22,11 +23,10 @@ def predict_single_book(user_id, book_id, books, ratings, his, vocab):
         return his[user_id].predict([vec])[0]
 
 if __name__ == "__main__":
-    with open('/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/his.pkl', 'rb') as f:
-        his = pickle.load(f)
-    with open('/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/vocab.pkl', 'rb') as f:
-        vocab = pickle.load(f)
-    path = '/Users/khangdoan/Library/CloudStorage/OneDrive-HanoiUniversityofScienceandTechnology/[HUST] General Subjects/2024.2/IT3190E - Machine Learning/mini-prj/'
+    his = load("/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/his.joblib")
+    vocab = load("/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/vocab.joblib")
+
+    path = '/Users/khangdoan/Documents/Git/Book-Recommendation/Data/'
     books = pd.read_csv(path + 'final_books.csv')
     ratings = pd.read_csv(path + 'interaction.csv')
     # predited = predict_books(14, books, ratings)

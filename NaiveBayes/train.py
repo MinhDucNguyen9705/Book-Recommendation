@@ -2,8 +2,8 @@ from preprocessing_data import preprocess
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from metrics import *
-import pickle
 import os
+from joblib import dump, load
 
 def train_model(file_path):
     data, vocab = preprocess(file_path)
@@ -43,13 +43,17 @@ def train_model(file_path):
     return history, vocab
 
 if __name__ == "__main__":
-    file_path = '/Users/khangdoan/Library/CloudStorage/OneDrive-HanoiUniversityofScienceandTechnology/[HUST] General Subjects/2024.2/IT3190E - Machine Learning/mini-prj/'
+    file_path = '/Users/khangdoan/Documents/Git/Book-Recommendation/Data/'
     history, vocab= train_model(file_path)
 
-    his_path  = '/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/his.pkl'
-    vocab_path = '/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/vocab.pkl'
-    with open(his_path, 'wb') as f:
-        pickle.dump(history, f)
-    with open(vocab_path, 'wb') as f:
-        pickle.dump(vocab, f)
+    his_path  = '/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/his.joblib'
+    vocab_path = '/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/vocab.joblib'
+
+    dump(history, his_path, compress=('lz4', 3))
+    dump(vocab, vocab_path, compress=('lz4', 3))
+
+    # with open(his_path, 'wb') as f:
+    #     pickle.dump(history, f)
+    # with open(vocab_path, 'wb') as f:
+    #     pickle.dump(vocab, f)
     print("Models saved successfully.")
