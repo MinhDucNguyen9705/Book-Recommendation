@@ -46,10 +46,23 @@ if __name__ == "__main__":
     file_path = '/Users/khangdoan/Documents/Git/Book-Recommendation/Data/'
     history, vocab= train_model(file_path)
 
-    his_path  = '/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/his.joblib'
+    def split_dict_in_half(d):
+        items = list(d.items())
+        mid   = len(items) // 2
+        d1 = dict(items[:mid])
+        d2 = dict(items[mid:])
+        return d1, d2
+
+    orig = {'a':1, 'b':2, 'c':3, 'd':4, 'e':5}
+    his1, his2 = split_dict_in_half(history)
+
+
+    his1_path  = '/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/his1.joblib'
+    his2_path  = '/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/his2.joblib'
     vocab_path = '/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/vocab.joblib'
 
-    dump(history, his_path, compress=('lz4', 3))
+    dump(his1, his1_path, compress=('lz4', 3))
+    dump(his2, his2_path, compress=('lz4', 3))
     dump(vocab, vocab_path, compress=('lz4', 3))
 
     # with open(his_path, 'wb') as f:

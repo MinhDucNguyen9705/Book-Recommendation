@@ -23,7 +23,9 @@ def predict_single_book(user_id, book_id, books, ratings, his, vocab):
         return his[user_id].predict([vec])[0]
 
 if __name__ == "__main__":
-    his = load("/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/his.joblib")
+    his1 = load("/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/his1.joblib")
+    his2 = load("/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/his2.joblib")
+    his = {**his1, **his2}
     vocab = load("/Users/khangdoan/Documents/Git/Book-Recommendation/NaiveBayes/vocab.joblib")
 
     path = '/Users/khangdoan/Documents/Git/Book-Recommendation/Data/'
