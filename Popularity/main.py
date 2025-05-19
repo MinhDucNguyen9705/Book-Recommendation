@@ -44,15 +44,16 @@ def load_data(path_b, path_i, sample_size=None):
 def evaluate_model(model):
     true_vals = model.user_book_matrix.values.flatten()
     pred_vals = model.pred_ratings_df.values.flatten()
-    mask = (model.user_book_matrix.values != 0).flatten()  # <-- flatten the mask
+    mask = (model.user_book_matrix.values != 0).flatten()
     rmse = np.sqrt(mean_squared_error(true_vals[mask], pred_vals[mask]))
     avg_rating = pred_vals[mask].mean()
     return rmse, avg_rating
 
 
-def create_signature():
-    example_input = pd.DataFrame({"user_id": [2142]})
-    example_output = pd.Series([{"book1": 4.5, "book2": 3.9}])
+def create_signature(model):
+    # Generate a realistic example input/output pair
+    example_input = pd.DataFrame({"user_id": [0]})
+    example_output = model.predict([0])
     signature = infer_signature(example_input, example_output)
     return signature, example_input
 
@@ -64,6 +65,7 @@ def log_model_to_mlflow(model, model_path, signature, input_example):
         artifact_path="model",
         registered_model_name=os.getenv("MLFLOW_REGISTERED_MODEL", "ml_catalog.ml_schema.popularity"),
         signature=signature,
+        input_example=input_example,
         serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE,
         code_paths=["Popularity/model.py"]
     )
@@ -89,7 +91,8 @@ def main():
         # Train
         model = HybridModel(n_factors=args.n_factors, max_iter=args.max_iter)
         model.fit(books, interactions)
-        model.predict()
+        # Build prediction matrix for evaluation
+        model._build_prediction_matrix()
 
         # Evaluate
         rmse, avg_rating = evaluate_model(model)
@@ -99,7 +102,7 @@ def main():
         mlflow.log_param("max_iter", args.max_iter)
 
         # Signature and example
-        signature, input_example = create_signature()
+        signature, input_example = create_signature(model)
 
         # Save and log model
         model_path = "book_recommender_model.joblib"
