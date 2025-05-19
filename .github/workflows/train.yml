@@ -58,7 +58,7 @@ jobs:
           MLFLOW_EXPERIMENT: "/Users/uytbvn@gmail.com/hybrid_model"
           MLFLOW_REGISTERED_MODEL: "ml_catalog.ml_schema.popularity"
         run: |
-          python main.py \
+          python ../Popularity/main.py \
             --books_path "${{ steps.read_params.outputs.books_path }}" \
             --interactions_path "${{ steps.read_params.outputs.interactions_path }}" \
             --n_factors ${{ steps.read_params.outputs.n_factors }} \
