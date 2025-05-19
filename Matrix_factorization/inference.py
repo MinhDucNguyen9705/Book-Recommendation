@@ -59,8 +59,8 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Matrix Factorization Inference")
-    parser.add_argument('--user_id', type=int, help='User ID (newuser_id)', required=False)
-    parser.add_argument('--book_id', type=int, help='Book ID (newbookid)', required=False)
+    parser.add_argument('--user_id', type=int, help='User ID', required=False)
+    parser.add_argument('--book_id', type=int, help='Book ID', required=False)
     parser.add_argument('--top_k', type=int, default=10, help='Number of top recommendations')
     args = parser.parse_args()
 
