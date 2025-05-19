@@ -14,8 +14,8 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Train and log book recommender model with MLflow"
     )
-    parser.add_argument("--books_path", type=str, default="final_books.csv")
-    parser.add_argument("--interactions_path", type=str, default="interaction.csv")
+    parser.add_argument("--books_path", type=str, default="../Data/final_books.csv")
+    parser.add_argument("--interactions_path", type=str, default="../Data/interaction.csv")
     parser.add_argument("--n_factors", type=int, default=20)
     parser.add_argument("--max_iter", type=int, default=100)
     parser.add_argument("--sample_size", type=int, default=None)
