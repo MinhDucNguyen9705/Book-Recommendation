@@ -5,7 +5,7 @@ def main():
     url = "http://98.82.15.127:1234/invocations"
     headers = {"Content-Type": "application/json"}
 
-    df = pd.DataFrame({"user_id": [2142]})
+    df = pd.DataFrame({"user_id": [11818]})
     payload = {"dataframe_records": df.to_dict(orient="records")}
 
     resp = requests.post(url, headers=headers, data=json.dumps(payload))

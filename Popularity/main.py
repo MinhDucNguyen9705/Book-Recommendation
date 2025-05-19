@@ -23,6 +23,12 @@ def parse_args():
                         help="Max iterations for NMF; overridden by training_params.yml")
     parser.add_argument("--sample_size", type=int, default=None,
                         help="Sample size for debugging; overridden by training_params.yml if specified")
+    parser.add_argument("--w_cf", type=float, default=0.3,
+                        help="Weight for collaborative filtering; overridden by training_params.yml")
+    parser.add_argument("--w_cbf", type=float, default=0.6,
+                        help="Weight for content-based filtering; overridden by training_params.yml")
+    parser.add_argument("--w_pop", type=float, default=0.1,
+                        help="Weight for popularity; overridden by training_params.yml")
     return parser.parse_args()
 
 
