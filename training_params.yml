@@ -2,5 +2,5 @@ type: recommender_training
 books_path: "Data/final_books.csv"
 interactions_path: "Data/interaction.csv"
 n_factors: 20
-max_iter: 100
-sample_size: 500
+max_iter: 200
+sample_size: 10000
