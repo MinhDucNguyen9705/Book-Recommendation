@@ -10,7 +10,7 @@ def train_model(data, book, k=3, lamu=0.1, lamb=0.1):
 
     train, test = split_data(finalratings)
     print(train.head())
-    model = ALS(data=ratings, k=args.k, lamu=args.lamu, lamb=args.lamb)
+    model = ALS(data=train, k=args.k, lamu=args.lamu, lamb=args.lamb)
     w = model.fit()
     R = w['U'].dot(w['B'])
     n_users, n_books = R.shape  # số user và book thật
