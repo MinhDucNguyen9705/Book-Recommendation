@@ -17,8 +17,6 @@ class ALS:
 
     def fit(self):
         users = np.unique(self.data.newuser_id)
-        # print("hihi")
-        # print(users)
         books = np.unique(self.data.newbookid)
         nu = len(users)
         # print ("number of users: ", len(users))
