@@ -9,9 +9,11 @@ def train_model(data, book, k=3, lamu=0.1, lamb=0.1):
     finalratings, finalbooks = preprocess_data(ratings, books)
 
     train, test = split_data(finalratings)
-    print(train.head())
+    # print(train.head())
     model = ALS(data=train, k=args.k, lamu=args.lamu, lamb=args.lamb)
     w = model.fit()
+    np.savez("../weights/MF.weights.h5", U=w['U'], B=w['B'])
+
     R = w['U'].dot(w['B'])
     n_users, n_books = R.shape  # số user và book thật
 
@@ -45,13 +47,13 @@ if __name__ == "__main__":
 
     ratings, books = load_data('../data/interaction.csv', '../data/final_books.csv')
     predictions = train_model(ratings, books)
-    print(predictions)
-    import pandas as pd
+    # print(predictions)
+#     import pandas as pd
 
-# Tạo DataFrame từ tuple
-    columns = ["Unnamed: 0", "user_id", "book_id", "rating", "newbookid", "newuser_id"]
+# # Tạo DataFrame từ tuple
+#     columns = ['user_id', 'book_id', 'newuser_id', 'newbookid', 'pred']
 
-    df = pd.DataFrame(predictions, columns=columns)
+#     df = pd.DataFrame(predictions, columns=columns)
 
-# Ghi ra CSV
-    df.to_csv("../weights/matrix_factorization.weights", index=False)
+# # Ghi ra CSV
+#     df.to_csv("../weights/matrix_factorization.weights", index=False)
