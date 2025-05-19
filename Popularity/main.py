@@ -44,7 +44,7 @@ def load_data(path_b, path_i, sample_size=None):
 def evaluate_model(model):
     true_vals = model.user_book_matrix.values.flatten()
     pred_vals = model.pred_ratings_df.values.flatten()
-    mask = (model.user_book_matrix.values != 0).flatten()  
+    mask = (model.user_book_matrix.values != 0).flatten()  # <-- flatten the mask
     rmse = np.sqrt(mean_squared_error(true_vals[mask], pred_vals[mask]))
     avg_rating = pred_vals[mask].mean()
     return rmse, avg_rating
@@ -57,7 +57,7 @@ def create_signature():
     return signature, example_input
 
 
-def log_model_to_mlflow(model, model_path, signature):
+def log_model_to_mlflow(model, model_path, signature, input_example):
     mlflow.log_artifact(model_path)
     mlflow.sklearn.log_model(
         sk_model=model,
