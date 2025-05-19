@@ -48,8 +48,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     model = ALS(test, k=args.k, lamu=args.lamu, lamb=args.lamb)
-    w = model.fit()
-    R = w['U'].dot(w['B'])
+    w = np.load("../weights/MF.weights.h5.npz")
+    U = w['U']
+    B = w['B']
+    R = U.dot(B)
     n_users, n_books = R.shape  # số user và book thật
 
     rflat = np.matrix.flatten(R)
@@ -71,5 +73,5 @@ if __name__ == "__main__":
     predictions = predictions[['user_id', 'book_id', 'newuser_id', 'newbookid', 'pred']]
 # train and evaluate model here
     tester = MatrixFactorizationTester(model, test_data)
-    rmse, ndcg = tester.evaluate(w["U"],w["B"],test_data)
+    rmse, ndcg = tester.evaluate(U,B,test_data)
     print(f"RMSE: {rmse}, NDCG: {ndcg}")
