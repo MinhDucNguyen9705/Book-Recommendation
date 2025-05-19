@@ -64,7 +64,8 @@ def log_model_to_mlflow(model, model_path, signature, input_example):
         artifact_path="model",
         registered_model_name=os.getenv("MLFLOW_REGISTERED_MODEL", "ml_catalog.ml_schema.popularity"),
         signature=signature,
-        serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE
+        serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE,
+        code_paths=["Popularity/model.py"]
     )
 
 
