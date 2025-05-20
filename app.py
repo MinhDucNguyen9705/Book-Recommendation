@@ -7,7 +7,7 @@ import csv
 
 # Simulated user database
 if "users" not in st.session_state:
-    st.session_state.users = pd.read_csv("data/user_data.csv", index_col=0)
+    st.session_state.users = pd.read_csv("Data/user_data.csv", index_col=0)
 
 if "current_user" not in st.session_state:
     st.session_state.current_user = pd.DataFrame({
@@ -20,7 +20,7 @@ if "user_id" not in st.session_state:
     st.session_state.user_id = 0
 
 if "book_data" not in st.session_state:
-    st.session_state.book_data = pd.read_csv("data/final_books.csv")
+    st.session_state.book_data = pd.read_csv("Data/final_books.csv")
     st.session_state.book_data = st.session_state.book_data[['book_id', 'title', 'image_url']]
 
 if "predict" not in st.session_state:
@@ -29,8 +29,8 @@ if "predict" not in st.session_state:
 if "model" not in st.session_state:
     st.session_state.model = NeuralMatrixFactoration(
                                 weight_path="weights/new_NeuMF.weights.h5",
-                                interaction_file="data/interaction.csv",
-                                book_file="data/final_books.csv"
+                                interaction_file="Data/interaction.csv",
+                                book_file="Data/final_books.csv"
                             )
 
 if "ratings" not in st.session_state:
@@ -127,7 +127,7 @@ def signup():
             new_user = st.session_state.current_user.values[0].tolist()
             new_user = [st.session_state.user_id] + new_user
             print(new_user)
-            with open('data/user_data.csv', 'a', newline='') as file:
+            with open('Data/user_data.csv', 'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow(new_user)
             st.success("Sign-up successful!")
