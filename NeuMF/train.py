@@ -1,8 +1,10 @@
 import tensorflow as tf
 from tensorflow import keras
-from model import GMF, MLP, NeuMF
 import argparse
-from utils import load_data, preprocess_data, split_data
+from NeuMF.model import GMF, MLP, NeuMF
+from NeuMF.utils import load_data, preprocess_data, split_data
+# from model import GMF, MLP, NeuMF
+# from utils import load_data, preprocess_data, split_data
 import numpy as np
 
 def parse_options():
@@ -38,7 +40,7 @@ def train_model(model, train_data, val_data, epochs=10, batch_size=256, learning
                   metrics=[tf.keras.metrics.RootMeanSquaredError()])
     
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        filepath='../weights/NeuMF.weights.h5', 
+        filepath='../weights/test_NeuMF.weights.h5', 
         monitor='val_root_mean_squared_error', 
         save_best_only=True,   
         save_weights_only=True,
@@ -62,8 +64,8 @@ if __name__ == "__main__":
     data, books = load_data('../data/interaction.csv', '../data/final_books.csv')
     data, books, user_encoder, book_encoder, genre_encoder, genre_columns = preprocess_data(data, books)
 
-    train_df, test_df, train_data, test_data = split_data(data, genre_columns, test_size=0.2)
-    train_df, val_df, train_data, val_data = split_data(train_df, genre_columns, test_size=0.1875)
+    train_df, val_df, train_data, val_data = split_data(data, genre_columns, test_size=0.2)
+    # train_df, val_df, train_data, val_data = split_data(train_df, genre_columns, test_size=0.1875)
 
     NUM_USERS = len(data['user_id'].unique())
     NUM_ITEMS = len(data['book_id'].unique())

@@ -1,10 +1,13 @@
 import pandas as pd
-from model import NeuMF, GMF, MLP
 import argparse
 import tensorflow as tf
 from tensorflow import keras
-from utils import load_data, preprocess_data, split_data
-from train import train_model
+from NeuMF.utils import load_data, preprocess_data, split_data
+from NeuMF.train import train_model
+from NeuMF.model import NeuMF, GMF, MLP
+# from utils import load_data, preprocess_data, split_data
+# from train import train_model
+# from model import NeuMF, GMF, MLP
 import numpy as np
 import os 
 
@@ -34,18 +37,18 @@ class NeuralMatrixFactoration():
         genre = self.books[self.books['book_id'] == book_id][self.genre_columns].values
         genre_input = np.array([genre]).reshape((-1,10))
 
-        print(user_input.shape)
-        print(book_input.shape)
-        print(genre_input.shape)
-
         rating = self.model.predict([user_input, book_input, genre_input], verbose=0)
 
         return rating[0][0]
 
     def get_user_ratings(self, user_id):
 
-        user_input = np.array([[user_id]])
-        user_input = self.user_encoder.transform(user_input)
+        if user_id not in self.user_encoder.classes_:
+            user_id = self.user_map[user_id]
+            user_input = np.array([[user_id]])   
+        else:
+            user_input = np.array([[user_id]])
+            user_input = self.user_encoder.transform(user_input)
 
         values = self.books[['book_id'] + list(self.genre_columns)].values
         book_ids = values[:, 0]
@@ -73,7 +76,7 @@ class NeuralMatrixFactoration():
         num_new_users = len(data['user_id'].unique())
         user_ids = data['user_id'].unique()
 
-        user_map = {uid: new_uid for uid, new_uid in zip(user_ids, range(self.NUM_USERS, self.NUM_USERS + num_new_users))}
+        self.user_map = {uid: new_uid for uid, new_uid in zip(user_ids, range(self.NUM_USERS, self.NUM_USERS + num_new_users))}
         data = data.merge(self.books, on='book_id')
         # print(data.head())
         # print(data.columns)
@@ -82,7 +85,7 @@ class NeuralMatrixFactoration():
         # genre_df = pd.DataFrame(genre_encoded, columns=self.genre_columns, index=data.index)
 
         # data = pd.concat([data.drop(columns=['most_tagged']), genre_df], axis=1)
-        data['user'] = data['user_id'].map(user_map)
+        data['user'] = data['user_id'].map(self.user_map)
         data['book'] = data['book_id'].map(lambda x: self.book_encoder.transform([x])[0])
 
         _, _, train_data, val_data = split_data(data, self.genre_columns, test_size=0.2)
@@ -93,7 +96,11 @@ class NeuralMatrixFactoration():
                 epochs=epochs,
                 batch_size=batch_size,
                 learning_rate=learning_rate)
+        model.load_weights('../weights/test_NeuMF.weights.h5')
         self.model = model
+        self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+                        loss='mse', 
+                        metrics=[tf.keras.metrics.RootMeanSquaredError()])
         self.NUM_USERS += num_new_users
         self.data = pd.concat([self.data, data], ignore_index=True)
 
@@ -188,10 +195,16 @@ if __name__ == "__main__":
     # for book_id, rating in rating.items():
     #     print(f"Book ID: {book_id}, Predicted Rating: {rating}")
 
-    top_k_books = ncf.get_top_k_recommendations(user_id, k=10)
+    top_k_books = ncf.get_top_k_recommendations(user_id, k=20)
     print(f"Top {len(top_k_books)} recommendations for user {user_id}:")
     for book_id, rating in top_k_books:
-        print(f"Book ID: {book_id}, Predicted Rating: {rating}")
+        print(f"Book ID: {ncf.books[ncf.books["book_id"]==book_id]['title'].values[0]}, Predicted Rating: {rating}")
 
-    # new_data = pd.read_csv('new_interaction.csv', index_col=0)
-    # ncf.update_user(new_data, learning_rate=0.0001, epochs=10, batch_size=32)
+    new_data = pd.read_csv('../data/new_interaction_test.csv', index_col=0)
+    ncf.update_user(new_data, learning_rate=0.0001, epochs=10, batch_size=4)
+
+    user_id = np.random.choice(new_data['user_id'].unique())
+    top_k_books = ncf.get_top_k_recommendations(user_id, k=20)
+    print(f"Top {len(top_k_books)} recommendations for user {user_id}:")
+    for book_id, rating in top_k_books:
+        print(f"Book ID: {ncf.books[ncf.books["book_id"]==book_id]['title'].values[0]}, Predicted Rating: {rating}")
