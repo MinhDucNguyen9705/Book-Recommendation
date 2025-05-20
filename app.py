@@ -3,6 +3,7 @@ import random
 import pandas as pd
 from NeuMF.inference import NeuralMatrixFactoration
 from NeuMF.train import train_model
+import csv
 
 # Simulated user database
 if "users" not in st.session_state:
@@ -27,7 +28,7 @@ if "predict" not in st.session_state:
 
 if "model" not in st.session_state:
     st.session_state.model = NeuralMatrixFactoration(
-                                weight_path="weights/NeuMF.weights.h5",
+                                weight_path="weights/new_NeuMF.weights.h5",
                                 interaction_file="data/interaction.csv",
                                 book_file="data/final_books.csv"
                             )
@@ -70,6 +71,7 @@ def login():
                     st.session_state.user_id = st.session_state.users[st.session_state.users['username'] == username]['user_id'].values[0]
                     st.session_state.ratings = st.session_state.model.data[st.session_state.model.data['user_id'] == st.session_state.user_id]['rating'].values
                     st.session_state.ratings = {k: v for k, v in zip(st.session_state.model.data[st.session_state.model.data['user_id'] == st.session_state.user_id]['book_id'].values, st.session_state.ratings)}
+                    st.session_state.random_books = st.session_state.book_data[~st.session_state.book_data['book_id'].isin(st.session_state.ratings.keys())].sample(10)
                     if len(st.session_state.ratings) < 5:
                         st.session_state.view = "rate"
                     else:
@@ -97,7 +99,7 @@ def login():
             #     }
             #     st.session_state.current_user = username
             #     st.success("Sign-up successful!")
-            #     st.rerun()
+            st.rerun()
 
 def signup():
     st.subheader("Sign Up")
@@ -121,7 +123,13 @@ def signup():
                                                 "user_id": [st.session_state.user_id],
                                             })
             st.session_state.users = pd.concat([st.session_state.users, st.session_state.current_user], ignore_index=True)
-            st.session_state.users.to_csv("data/user_data.csv")
+            # st.session_state.users.to_csv("data/user_data.csv")
+            new_user = st.session_state.current_user.values[0].tolist()
+            new_user = [st.session_state.user_id] + new_user
+            print(new_user)
+            with open('data/user_data.csv', 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(new_user)
             st.success("Sign-up successful!")
             st.session_state.view = "login"
             st.rerun()
@@ -137,18 +145,26 @@ def rating_screen():
     
     if search_term:
         books_to_show = st.session_state.book_data[st.session_state.book_data['title'].str.contains(search_term, case=False)]
-        st.session_state.random_books = st.session_state.book_data.sample(10)
+        #take 10 random books from the filtered data that have not been rated
+        st.session_state.random_books = st.session_state.book_data[~st.session_state.book_data['book_id'].isin(st.session_state.ratings.keys())].sample(10)
     else:
+        # st.session_state.random_books = st.session_state.book_data[~st.session_state.book_data['book_id'].isin(st.session_state.ratings.keys())].sample(10)
         books_to_show = st.session_state.random_books
     
     for _, book in books_to_show.iterrows():
         st.image(book["image_url"], width=100)
         st.markdown(f"- **{book['title']}**")
+        book_id = book["book_id"]
+        initial_rating = st.session_state.ratings.get(book_id, 0)
         slider_key = f"rating_{book['book_id']}"
         rating_value = st.slider(
-            f"Rate {book['title']}", 0, 5, 0,
-            key=slider_key
-        )
+                            f"Rate {book['title']}", 
+                            min_value=0, 
+                            max_value=5, 
+                            value=initial_rating,
+                            step=1,
+                            key=slider_key
+                        )
         st.session_state.ratings[book["book_id"]] = rating_value
 
     if st.button("Submit Ratings"):
@@ -167,9 +183,13 @@ def rating_screen():
                 'rating': ratings_values
             })
             new_data = new_data[new_data['rating'] > 0]
+            with open('data/interaction.csv', 'a', newline='') as file:
+                writer = csv.writer(file)
+                for i, data in new_data.iterrows():
+                    writer.writerow([st.session_state.model.data.shape[0]+i+1]+data.values.tolist())
             # print(new_data)
             st.success("Thank you! Generating recommendations...")
-            st.session_state.model.update_user(new_data, learning_rate=0.0001, epochs=10, batch_size=32)
+            st.session_state.model.update_user(new_data, learning_rate=0.0001, epochs=15, batch_size=4, save_path='weights/new_NeuMF.weights.h5')
             st.session_state.predict = make_recommendations()
             st.session_state.view = "recommend"
             st.rerun()

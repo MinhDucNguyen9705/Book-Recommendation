@@ -71,7 +71,7 @@ class NeuralMatrixFactoration():
         top_k_books = sorted_books[:k]
         return top_k_books
 
-    def update_user(self, data, learning_rate=0.0001, epochs=10, batch_size=32):
+    def update_user(self, data, learning_rate=0.0001, epochs=10, batch_size=32, save_path='../weights/new_NeuMF.weights.h5'):
 
         num_new_users = len(data['user_id'].unique())
         user_ids = data['user_id'].unique()
@@ -95,8 +95,9 @@ class NeuralMatrixFactoration():
         train_model(model, train_data, val_data,
                 epochs=epochs,
                 batch_size=batch_size,
-                learning_rate=learning_rate)
-        model.load_weights('../weights/test_NeuMF.weights.h5')
+                learning_rate=learning_rate,
+                save_path=save_path)
+        model.load_weights(save_path)
         self.model = model
         self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
                         loss='mse', 
