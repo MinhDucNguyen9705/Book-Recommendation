@@ -39,9 +39,12 @@ jobs:
             print('::set-output name=interactions_path::' + str(cfg.get('interactions_path')))
             print('::set-output name=n_factors::' + str(cfg.get('n_factors')))
             print('::set-output name=max_iter::' + str(cfg.get('max_iter')))
-            print('::set-output name=w_cf::'   + str(cfg.get('w_cf', '')))
+            print('::set-output name=registered_model::' + str(cfg.get('registered_model')))
+            print('::set-output name=regularization::' + str(cfg.get('regularization')))
+            print('::set-output name=max_features::' + str(cfg.get('max_features')))
             print('::set-output name=w_cbf::'  + str(cfg.get('w_cbf', '')))
             print('::set-output name=w_pop::'  + str(cfg.get('w_pop', '')))
+            print('::set-output name=w_mf::' + str(cfg.get('w_mf', '')))
             val = cfg.get('sample_size')
             print('::set-output name=sample_size::' + (str(val) if val is not None else ''))
             EOF

@@ -4,6 +4,9 @@ interactions_path: "Data/interaction.csv"
 n_factors: 20
 max_iter: 200
 sample_size: 10000
-w_cf: 0.1
-w_cbf: 0.9
-w_pop: 0.0
+registered_model: "ml_catalog.ml_schema.popularity"
+regularization: 0.01
+max_features: 5000
+w_cbf: 0.7
+w_pop: 0.2
+w_mf: 0.1
