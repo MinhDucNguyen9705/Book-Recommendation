@@ -20,22 +20,22 @@ def preprocess_data(dfbooks, dfratings):
 
     finalratings = finalratings.merge(finalbooks[['book_id','newbookid']], how='left', on= ['book_id'])
     finalratings['newuser_id'] = finalratings.groupby('user_id').grouper.group_info[0]+1
-
+    userid_dict = {u: v for u,v in zip(finalratings['user_id'].values.tolist(), finalratings['newuser_id'].values.tolist())}
 
     finalbooks['text'] = finalbooks['description'].fillna(finalbooks['title'])
     finalbooks['text'] = finalbooks['text'].str.replace(r'[^\w\s]', '', regex=True).str.lower()
 
-    return finalbooks, finalratings
+    return finalbooks, finalratings, userid_dict
 
-def train_tf_idf(finalbooks, train_ratings):
-    model = TfIdf(finalbooks=finalbooks, finalratings=train_ratings)
+def train_tf_idf(finalbooks, train_ratings, userid_dict):
+    model = TfIdf(finalbooks=finalbooks, finalratings=train_ratings, userid_dict=userid_dict)
     return model
 
 
 if __name__ == "__main__":
     dfbooks = pd.read_csv('/Users/phamkien/Documents/MLprojjjjj/Book-Recommendation/Data/final_books.csv')
     dfratings = pd.read_csv('/Users/phamkien/Documents/MLprojjjjj/Book-Recommendation/Data/interaction.csv')
-    finalbooks, finalratings = preprocess_data(dfbooks, dfratings)
+    finalbooks, finalratings, userid_dict = preprocess_data(dfbooks, dfratings)
     train_df, test_df = train_test_split(finalratings,
                             stratify=finalratings['newuser_id'], 
                             test_size=0.1875,
