@@ -183,7 +183,7 @@ def rating_screen():
                 'rating': ratings_values
             })
             new_data = new_data[new_data['rating'] > 0]
-            with open('data/interaction.csv', 'a', newline='') as file:
+            with open('Data/interaction.csv', 'a', newline='') as file:
                 writer = csv.writer(file)
                 for i, data in new_data.iterrows():
                     writer.writerow([st.session_state.model.data.shape[0]+i+1]+data.values.tolist())
