@@ -7,9 +7,10 @@ from nltk.corpus import stopwords
 import nltk
 nltk.download('stopwords')
 class TfIdf:
-    def __init__(self, finalbooks, finalratings, train=True):
+    def __init__(self, finalbooks, finalratings, userid_dict, train=True):
         self.finalbooks = finalbooks
         self.finalratings = finalratings
+        self.userid_dict = userid_dict
         if train:
             self.SimC, self.book_idx = self.create_tf_matrix()
     def create_tf_matrix(self):
@@ -50,28 +51,25 @@ class TfIdf:
 
         return SimC, book_idx
         
-    def predict_all_books_single_user(self, user_id, SimC, book_idx):
+    def predict_all_books_single_user(self, user_id):
+        user_id = self.userid_dict[user_id]
         user_data = self.finalratings[self.finalratings['newuser_id'] == user_id]
-        user_data = user_data[user_data['newbookid'].isin(book_idx)]  # chỉ lấy sách hợp lệ
+        user_data = user_data[user_data['newbookid'].isin(self.book_idx)]  # chỉ lấy sách hợp lệ
 
         if user_data.empty:
             raise ValueError("User has no valid ratings for prediction.")
 
-        bidx = [book_idx[b] for b in user_data['newbookid']] #lấy book
+        bidx = [self.book_idx[b] for b in user_data['newbookid']] #lấy book
         true_ratings = user_data['rating'].values
 
         # Tính độ tương đồng giữa tất cả sách và các sách mà người dùng đã đánh giá
-        sim_mat = SimC[:, bidx]  # shape: (n_books, len(bidx))
+        sim_mat = self.SimC[:, bidx]  # shape: (n_books, len(bidx))
 
         # Tính điểm dự đoán cho tất cả sách
         preds = (sim_mat * true_ratings[np.newaxis, :]).sum(axis=1) / (sim_mat.sum(axis=1) + 1e-9)
 
-        # Trả về DataFrame với tất cả sách và dự đoán tương ứng
-        return pd.DataFrame({
-            'newuser_id': user_id,
-            'newbookid': self.finalbooks['newbookid'],
-            'pred': preds
-        })
+
+        return {u:v for u, v in zip(self.finalbooks['book_id'].values.tolist(), preds)}
     
     def predict_single_book_single_user(self, user_id, book_id, SimC, book_idx):
         res = self.predict_all_books_single_user(user_id, SimC, book_idx)
@@ -104,3 +102,22 @@ class TfIdf:
                     for _,grp in merged_te.groupby('newuser_id') ]
 
         print("Test  mean NDCG:", np.round(np.mean(ndcg_te),3))
+
+    def predict_new_user(self, user_df, k = 20):
+        user_id = user_df['user_id'].values[0]
+        list_book_id = user_df['book_id'].values.tolist()
+        list_newbook_id = [self.book_idx[id] for id in list_book_id]
+        true_ratings = user_df['rating'].values
+
+        sim_mat = self.SimC[:, list_newbook_id]
+        # Tính điểm dự đoán cho tất cả sách
+        preds = (sim_mat * true_ratings[np.newaxis, :]).sum(axis=1) / (sim_mat.sum(axis=1) + 1e-9)
+
+        my_dict = {u:v for u, v in zip(self.finalbooks['book_id'].values.tolist(), preds)}
+
+        my_dict = sorted(my_dict.items(), key=lambda x: x[1], reverse=True)
+        return my_dict[:k]
+
+
+        
+
