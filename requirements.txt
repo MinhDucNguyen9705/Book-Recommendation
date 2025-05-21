@@ -1,6 +1,7 @@
-tensorflow
+tensorflow==2.17.0
 numpy
 pandas
 scikit-learn
 mlflow==2.22.0
 nltk
+streamlit==1.45.1
