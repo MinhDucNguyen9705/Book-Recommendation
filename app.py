@@ -237,25 +237,42 @@ def make_recommendations():
     return st.session_state.predict
 
 def recommendation_screen():
-    st.title("📚 Your Book Recommendations")
-    st.session_state.new_user = False
-    
-    st.subheader("Recommended Books:")
-    col1, col2 = st.columns(2)
-    with col1:
-        for book in st.session_state.predict[:10]:
-            book_id = book[0]
-            book_title = st.session_state.model.data.loc[st.session_state.model.data['book_id'] == book_id, 'title'].values[0]
-            book_image = st.session_state.model.data.loc[st.session_state.model.data['book_id'] == book_id, 'image_url'].values[0]
-            st.image(book_image, width=100)
-            st.markdown(f"⭐ **{book_title}**")
-    with col2:
-        for book in st.session_state.predict[10:]:
-            book_id = book[0]
-            book_title = st.session_state.model.data.loc[st.session_state.model.data['book_id'] == book_id, 'title'].values[0]
-            book_image = st.session_state.model.data.loc[st.session_state.model.data['book_id'] == book_id, 'image_url'].values[0]
-            st.image(book_image, width=100)
-            st.markdown(f"⭐ **{book_title}**")
+    book_pairs = [st.session_state.predict[i:i+2] for i in range(0, len(st.session_state.predict), 2)]
+
+    for pair in book_pairs:
+        col1, col2 = st.columns(2)
+
+        # First book in the row
+        with col1:
+            if len(pair) > 0:
+                book_id = pair[0][0]
+                book_title = st.session_state.model.data.loc[st.session_state.model.data['book_id'] == book_id, 'title'].values[0]
+                book_image = st.session_state.model.data.loc[st.session_state.model.data['book_id'] == book_id, 'image_url'].values[0]
+                book_description = st.session_state.model.data.loc[st.session_state.model.data['book_id'] == book_id, 'description'].values[0]
+
+                with st.container():
+                    img_col, text_col = st.columns([1, 3])
+                    with img_col:
+                        st.image(book_image, width=100)
+                    with text_col:
+                        st.markdown(f"<div style='font-size:18px; font-weight:bold;'>⭐ {book_title}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:14px; color:gray;'>{book_description}</div>", unsafe_allow_html=True)
+
+        # Second book in the row
+        with col2:
+            if len(pair) > 1:
+                book_id = pair[1][0]
+                book_title = st.session_state.model.data.loc[st.session_state.model.data['book_id'] == book_id, 'title'].values[0]
+                book_image = st.session_state.model.data.loc[st.session_state.model.data['book_id'] == book_id, 'image_url'].values[0]
+                book_description = st.session_state.model.data.loc[st.session_state.model.data['book_id'] == book_id, 'description'].values[0]
+
+                with st.container():
+                    img_col, text_col = st.columns([1, 3])
+                    with img_col:
+                        st.image(book_image, width=100)
+                    with text_col:
+                        st.markdown(f"<div style='font-size:18px; font-weight:bold;'>⭐ {book_title}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:14px; color:gray;'>{book_description}</div>", unsafe_allow_html=True)
 
     # print(st.session_state.current_user)
     # print(st.session_state.predict)
