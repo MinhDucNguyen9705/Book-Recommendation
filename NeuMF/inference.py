@@ -99,7 +99,7 @@ class NeuralMatrixFactoration():
                 batch_size=batch_size,
                 learning_rate=learning_rate,
                 save_path=save_path)
-        # model.load_weights(save_path)
+        model.load_weights(save_path)
         self.model = model
         self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
                         loss='mse', 
@@ -190,7 +190,8 @@ if __name__ == "__main__":
     book_file = '../data/final_books.csv'
 
     ncf = NeuralMatrixFactoration(weight_path, interaction_file, book_file)
-    user_id = np.random.choice(ncf.data['user_id'].unique())
+    # user_id = np.random.choice(ncf.data['user_id'].unique())
+    user_id = 2142
     book_id = np.random.choice(ncf.data['book_id'].unique())   
     # rating = ncf.get_user_ratings(user_id)
     # print(f"Predicted rating for user {user_id} and book {book_id}: {rating}")
@@ -199,12 +200,13 @@ if __name__ == "__main__":
     #     print(f"Book ID: {book_id}, Predicted Rating: {rating}")
 
     top_k_books = ncf.get_top_k_recommendations(user_id, k=1000)
-    highest_rated_books = ncf.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
-    most_rated_books = ncf.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
+    # highest_rated_books = ncf.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
+    # most_rated_books = ncf.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
     print(f"Top {len(top_k_books)} recommendations for user {user_id}:")
     i = 0
     for book_id, rating in top_k_books:
-        if book_id not in highest_rated_books and book_id not in most_rated_books:
+        # if book_id not in highest_rated_books and book_id not in most_rated_books:
+        if ncf.data[ncf.data['book_id']==book_id]['rating'].mean() < 4.2:
             i+=1
             print(f"Book ID: {ncf.books[ncf.books["book_id"]==book_id]['title'].values[0]}, Predicted Rating: {rating}")
             if i == 20:

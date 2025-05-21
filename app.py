@@ -82,10 +82,11 @@ def login():
                         st.session_state.view = "recommend"
                     if not st.session_state.new_user:
                         st.session_state.predict = st.session_state.model.get_top_k_recommendations(st.session_state.user_id, k=1000)
-                        highest_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
-                        most_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
+                        # highest_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
+                        # most_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
                         #eliminate the books that are highest rated or most rated
-                        st.session_state.predict = [book for book in st.session_state.predict if book[0] not in highest_rated_books and book[0] not in most_rated_books]
+                        # st.session_state.predict = [book for book in st.session_state.predict if book[0] not in highest_rated_books and book[0] not in most_rated_books]
+                        st.session_state.predict = [book for book in st.session_state.predict if st.session_state.model.data[st.session_state.model.data['book_id']==book[0]]['rating'].mean() < 4.2]
                     st.rerun()
             # if user and user["password"] == password:
             #     st.session_state.current_user = username
@@ -208,10 +209,10 @@ def rating_screen():
                 st.session_state.new_user = False
             else:
                 st.session_state.predict = st.session_state.model.get_top_k_recommendations(st.session_state.user_id, k=1000)
-                highest_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
-                most_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
+                # highest_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
+                # most_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
                 #eliminate the books that are highest rated or most rated
-                st.session_state.predict = [book for book in st.session_state.predict if book[0] not in highest_rated_books and book[0] not in most_rated_books]
+                st.session_state.predict = [book for book in st.session_state.predict if st.session_state.model.data[st.session_state.model.data['book_id']==book[0]]['rating'].mean() < 4.2]
             st.session_state.predict = make_recommendations()
             st.session_state.view = "recommend"
             st.rerun()
