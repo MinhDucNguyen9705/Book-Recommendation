@@ -165,7 +165,8 @@ def rating_screen():
     
     for _, book in books_to_show.iterrows():
         st.image(book["image_url"], width=100)
-        st.markdown(f"- **{book['title']}**")
+        st.markdown(f"<div style='font-size:18px; font-weight:bold;'>⭐ {book['title']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:14px; color:gray;'>{book['description']}</div>", unsafe_allow_html=True)
         book_id = book["book_id"]
         initial_rating = st.session_state.ratings.get(book_id, 0)
         slider_key = f"rating_{book['book_id']}"
