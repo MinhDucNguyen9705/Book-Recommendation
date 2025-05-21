@@ -85,9 +85,7 @@ def login():
                         highest_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
                         most_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
                         #eliminate the books that are highest rated or most rated
-                        print(len(st.session_state.predict))
                         st.session_state.predict = [book for book in st.session_state.predict if book[0] not in highest_rated_books and book[0] not in most_rated_books]
-                        print(len(st.session_state.predict))
                     st.rerun()
             # if user and user["password"] == password:
             #     st.session_state.current_user = username
@@ -137,7 +135,6 @@ def signup():
             # st.session_state.users.to_csv("data/user_data.csv")
             new_user = st.session_state.current_user.values[0].tolist()
             new_user = [st.session_state.user_id] + new_user
-            print(new_user)
             with open('Data/user_data.csv', 'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow(new_user)
@@ -181,14 +178,12 @@ def rating_screen():
         st.session_state.ratings[book["book_id"]] = rating_value
 
     if st.button("Submit Ratings"):
-        # print(st.session_state.ratings)
         rated_books = {st.session_state.book_data[st.session_state.book_data["book_id"]==k]['title'].values[0]: v for k, v in st.session_state.ratings.items() if v > 0}
         if len(rated_books) < 5:
             st.warning("⚠️ Please rate at least 5 books.")
         else:
             book_ids = st.session_state.book_data[st.session_state.book_data['book_id'].isin(st.session_state.ratings.keys())]['book_id'].values
             ratings_values = st.session_state.ratings.values()
-            # print(len(book_titles), len(book_ids), len(ratings_values))
             new_data = pd.DataFrame({
                 'user_id': [st.session_state.user_id] * len(book_ids),
                 'book_id': book_ids,
@@ -199,7 +194,6 @@ def rating_screen():
                 writer = csv.writer(file)
                 for i, data in new_data.iterrows():
                     writer.writerow([st.session_state.model.data.shape[0]+i+1]+data.values.tolist())
-            # print(new_data)
             st.success("Thank you! Generating recommendations...")
             if st.session_state.new_user:
 
@@ -217,9 +211,7 @@ def rating_screen():
                 highest_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
                 most_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
                 #eliminate the books that are highest rated or most rated
-                print(len(st.session_state.predict))
                 st.session_state.predict = [book for book in st.session_state.predict if book[0] not in highest_rated_books and book[0] not in most_rated_books]
-                print(len(st.session_state.predict))
             st.session_state.predict = make_recommendations()
             st.session_state.view = "recommend"
             st.rerun()
@@ -227,8 +219,6 @@ def rating_screen():
 def make_recommendations():
     # st.session_state.predict = st.session_state.model.get_top_k_recommendations(st.session_state.user_id, k=100)
     rated_books = []
-    print(len(st.session_state.predict))
-    print(st.session_state.predict)
     for i in range(len(st.session_state.predict)):
         if st.session_state.predict[i][0] in st.session_state.ratings.keys():
             rated_books.append(st.session_state.predict[i])
@@ -275,9 +265,6 @@ def recommendation_screen():
                         st.markdown(f"<div style='font-size:18px; font-weight:bold;'>⭐ {book_title}</div>", unsafe_allow_html=True)
                         st.markdown(f"<div style='font-size:14px; color:gray;'>{book_description}</div>", unsafe_allow_html=True)
 
-    # print(st.session_state.current_user)
-    # print(st.session_state.predict)
-    # print(st.session_state.ratings)
     st.subheader(f"Hi {st.session_state.current_user["username"].values[0]}, you might like:")
     if st.button("🔄 Go back and rate more books"):
         st.session_state.view = "rate"
@@ -286,15 +273,15 @@ def recommendation_screen():
 
 
     if st.button("Logout"):
-        st.session_state.current_user = pd.DataFrame({
-                                            "username": [],
-                                            "password": [],
-                                            "user_id": [],
-                                        })
+        keys_to_clear = [
+            "current_user", "user_id", "ratings", "predict",
+            "random_books", "view", "new_user"
+        ]
         st.session_state.view = "login"
-        st.session_state.ratings = {}
-        st.session_state.predict = []
-        st.session_state.user_id = 0
+        for key in keys_to_clear:
+            if key in st.session_state:
+                del st.session_state[key]
+        
         st.rerun()
 
 def main():
