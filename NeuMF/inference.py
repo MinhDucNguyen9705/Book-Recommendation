@@ -15,7 +15,7 @@ class NeuralMatrixFactoration():
     def __init__(self, weight_path, interaction_file, book_file):
         self.data, self.books = load_data(interaction_file, book_file)
         self.data, self.books, self.user_encoder, self.book_encoder, self.genre_encoder, self.genre_columns = preprocess_data(self.data, self.books)
-
+        self.user_map = {uid: i for i, uid in enumerate(self.data['user_id'].unique())}
         self.NUM_USERS = len(self.data['user_id'].unique())
         self.NUM_ITEMS = len(self.data['book_id'].unique())
         self.NUM_GENRES = len(self.genre_columns)
@@ -76,7 +76,9 @@ class NeuralMatrixFactoration():
         num_new_users = len(data['user_id'].unique())
         user_ids = data['user_id'].unique()
 
-        self.user_map = {uid: new_uid for uid, new_uid in zip(user_ids, range(self.NUM_USERS, self.NUM_USERS + num_new_users))}
+        for uid, new_uid in zip(user_ids, range(self.NUM_USERS, self.NUM_USERS + num_new_users)):
+            self.user_map[uid] = new_uid
+        # self.user_map = {uid: new_uid for uid, new_uid in zip(user_ids, range(self.NUM_USERS, self.NUM_USERS + num_new_users))}
         data = data.merge(self.books, on='book_id')
         # print(data.head())
         # print(data.columns)
@@ -97,7 +99,7 @@ class NeuralMatrixFactoration():
                 batch_size=batch_size,
                 learning_rate=learning_rate,
                 save_path=save_path)
-        model.load_weights(save_path)
+        # model.load_weights(save_path)
         self.model = model
         self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
                         loss='mse', 
@@ -196,16 +198,36 @@ if __name__ == "__main__":
     # for book_id, rating in rating.items():
     #     print(f"Book ID: {book_id}, Predicted Rating: {rating}")
 
-    top_k_books = ncf.get_top_k_recommendations(user_id, k=20)
+    top_k_books = ncf.get_top_k_recommendations(user_id, k=1000)
+    highest_rated_books = ncf.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
+    most_rated_books = ncf.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
     print(f"Top {len(top_k_books)} recommendations for user {user_id}:")
+    i = 0
     for book_id, rating in top_k_books:
-        print(f"Book ID: {ncf.books[ncf.books["book_id"]==book_id]['title'].values[0]}, Predicted Rating: {rating}")
+        if book_id not in highest_rated_books and book_id not in most_rated_books:
+            i+=1
+            print(f"Book ID: {ncf.books[ncf.books["book_id"]==book_id]['title'].values[0]}, Predicted Rating: {rating}")
+            if i == 20:
+                break
 
-    new_data = pd.read_csv('../data/new_interaction_test.csv', index_col=0)
-    ncf.update_user(new_data, learning_rate=0.0001, epochs=10, batch_size=4)
+    # new_data = pd.DataFrame({
+    #     'user_id': [442590]*6,
+    #     'book_id': [66090, 186243, 81662, 184624, 63258, 165016],
+    #     'rating': [4, 3, 2, 4, 3, 3],
+    # })
 
-    user_id = np.random.choice(new_data['user_id'].unique())
-    top_k_books = ncf.get_top_k_recommendations(user_id, k=20)
-    print(f"Top {len(top_k_books)} recommendations for user {user_id}:")
-    for book_id, rating in top_k_books:
-        print(f"Book ID: {ncf.books[ncf.books["book_id"]==book_id]['title'].values[0]}, Predicted Rating: {rating}")
+    # ncf.update_user(new_data, learning_rate=0.0001, epochs=10, batch_size=4, save_path='../weights/NeuMF.weights.h5')
+
+    # user_id = np.random.choice(new_data['user_id'].unique())
+    # top_k_books_new = ncf.get_top_k_recommendations(user_id, k=1000)
+    # highest_rated_books = ncf.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
+    # most_rated_books = ncf.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
+    # print(f"Top {len(top_k_books_new)} recommendations for user {user_id}:")
+    # for book_id, rating in top_k_books_new:
+    #     if book_id not in highest_rated_books and book_id not in most_rated_books:
+    #         print(f"Book ID: {ncf.books[ncf.books["book_id"]==book_id]['title'].values[0]}, Predicted Rating: {rating}")
+
+    # #Collision
+    # for book_id, rating in top_k_books_new:
+    #     if book_id in top_k_books:
+    #         print(f"Book ID: {ncf.books[ncf.books['book_id']==book_id]['title'].values[0]}, Predicted Rating: {rating}")
