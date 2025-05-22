@@ -51,7 +51,9 @@ class MatrixFactorizationInference:
         sorted_books = sorted(user_ratings.items(), key=lambda x: x[1], reverse=True)
         return sorted_books[:k]
 
-    def get_user_ratings(self, newuser_id):
+    def get_user_ratings(self, user_id):
+        userid_dict = {u: v for u,v in zip(self.data['user_id'].values.tolist(), self.data['newuser_id'].values.tolist())}
+        newuser_id = userid_dict.get(user_id)
         df = self.pred_df[self.pred_df['newuser_id'] == newuser_id]
         return dict(zip(df['newbookid'], df['pred']))
 if __name__ == "__main__":

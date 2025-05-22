@@ -185,14 +185,16 @@ class PartialTrainModel(tf.keras.Model):
     
     
 if __name__ == "__main__":
-    weight_path = '../weights/NeuMF.weights.h5'
+    weight_path = '../weights/new_NeuMF.weights.h5'
     interaction_file = '../data/interaction.csv'
     book_file = '../data/final_books.csv'
 
     ncf = NeuralMatrixFactoration(weight_path, interaction_file, book_file)
     # user_id = np.random.choice(ncf.data['user_id'].unique())
-    user_id = 2142
+    user_id = 75853
     book_id = np.random.choice(ncf.data['book_id'].unique())   
+    print(ncf.book_encoder.transform([book_id]))
+    print(ncf.user_encoder.classes_)
     # rating = ncf.get_user_ratings(user_id)
     # print(f"Predicted rating for user {user_id} and book {book_id}: {rating}")
     # print(f"Predicted ratings for user {user_id}:")
