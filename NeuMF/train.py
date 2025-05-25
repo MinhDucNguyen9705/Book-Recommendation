@@ -40,13 +40,13 @@ def train_model(model, train_data, val_data, epochs=10, batch_size=256, learning
                   metrics=[tf.keras.metrics.RootMeanSquaredError()])
     
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        filepath=save_path, 
-        monitor='val_root_mean_squared_error', 
-        save_best_only=True,   
-        save_weights_only=True,
-        mode='min',                 
-        verbose=1            
-    )
+                                                    filepath=save_path, 
+                                                    monitor='val_root_mean_squared_error', 
+                                                    save_best_only=True,   
+                                                    save_weights_only=True,
+                                                    mode='min',                 
+                                                    verbose=1            
+                                                )
     
     # Train the model
     history = model.fit([X_train_user, X_train_book, X_train_genre], y_train,
@@ -56,6 +56,59 @@ def train_model(model, train_data, val_data, epochs=10, batch_size=256, learning
                         callbacks=[checkpoint])
     
     return history
+
+class NonBiasedModelTrainer(tf.keras.Model):
+    def __init__(self, num_users, num_items, num_genres, latent_dim, layers_, regs, **kwargs):
+        super(NonBiasedModelTrainer, self).__init__(**kwargs)
+        self.model = NeuMF(num_users, num_items, num_genres, latent_dim, layers_, regs)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+        self.loss_tracker = tf.keras.metrics.Mean(name="loss")
+        self.rmse_metrics = tf.keras.metrics.RootMeanSquaredError(name='rmse')
+
+    @tf.function
+    def train_step(self, data):
+        (user_ids, book_ids, book_genres, pop_weight), y_true = data
+        book_ids = tf.squeeze(book_ids, axis=-1)
+        book_ids = tf.cast(book_ids, tf.int64)
+        y_true = tf.cast(y_true, tf.float32)
+        with tf.GradientTape() as tape:
+            y_pred = self.model([user_ids, book_ids, book_genres])
+            mse = tf.reduce_mean(tf.square(y_pred - y_true))
+            loss = tf.reduce_mean(mse * (1 - pop_weight))
+        grads = tape.gradient(loss, self.model.trainable_variables)
+        self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+        self.loss_tracker.update_state(loss)
+        self.rmse_metrics.update_state(y_true, y_pred)
+        return {
+                'loss':self.loss_tracker.result(),
+                'rmse':self.rmse_metrics.result()
+               }
+    
+    @tf.function
+    def test_step(self, data):
+        (user_ids, book_ids, book_genres, pop_weight), y_true = data
+        y_true = tf.cast(y_true, tf.float32)
+        book_ids = tf.squeeze(book_ids, axis=-1)
+        book_ids = tf.cast(book_ids, tf.int64)
+
+        with tf.GradientTape() as tape:
+            y_pred = self.model([user_ids, book_ids, book_genres])
+            mse = tf.reduce_mean(tf.square(y_pred - y_true), axis=-1)
+            loss = tf.reduce_mean(mse * (1 - pop_weight))
+        self.loss_tracker.update_state(loss)
+        self.rmse_metrics.update_state(y_true, y_pred)
+        return {
+                'val_loss':self.loss_tracker.result(),
+                'val_rmse':self.rmse_metrics.result()
+               }
+
+    @property
+    def metrics(self):
+        return [self.loss_tracker, self.rmse_metrics]
+
+    def reset_metrics(self):
+        self.loss_tracker.reset_state()
+        self.rmse_metrics.reset_state()
 
 if __name__ == "__main__":
 

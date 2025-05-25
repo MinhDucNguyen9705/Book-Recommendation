@@ -3,7 +3,8 @@ import random
 import pandas as pd
 from NeuMF.inference import NeuralMatrixFactoration
 from NeuMF.train import train_model
-from TF_IDF.train import preprocess_data, train_tf_idf
+from NeuMF.utils import split_data, preprocess_data
+# from TF_IDF.train import preprocess_data, train_tf_idf
 import csv
 import gc
 
@@ -31,13 +32,16 @@ if "predict" not in st.session_state:
 
 if "model" not in st.session_state:
     st.session_state.model = NeuralMatrixFactoration(
-                                weight_path="weights/new_NeuMF.weights.h5",
+                                weight_path="weights/new_non_biased_NeuMF.weights.h5",
                                 interaction_file="Data/interaction.csv",
                                 book_file="Data/final_books.csv"
                             )
 
 if "ratings" not in st.session_state:
     st.session_state.ratings = {}
+
+if "old_ratings" not in st.session_state:
+    st.session_state.old_ratings = {}
 
 if "random_books" not in st.session_state:
     st.session_state.random_books = st.session_state.book_data.sample(10)
@@ -78,10 +82,10 @@ def login():
                     st.success("Login successful!")
                     st.session_state.current_user = st.session_state.users[st.session_state.users['username'] == username]
                     st.session_state.user_id = st.session_state.users[st.session_state.users['username'] == username]['user_id'].values[0]
-                    st.session_state.ratings = st.session_state.model.data[st.session_state.model.data['user_id'] == st.session_state.user_id]['rating'].values
-                    st.session_state.ratings = {k: v for k, v in zip(st.session_state.model.data[st.session_state.model.data['user_id'] == st.session_state.user_id]['book_id'].values, st.session_state.ratings)}
-                    st.session_state.random_books = st.session_state.book_data[~st.session_state.book_data['book_id'].isin(st.session_state.ratings.keys())].sample(10)
-                    if len(st.session_state.ratings) < 5:
+                    st.session_state.old_ratings = st.session_state.model.data[st.session_state.model.data['user_id'] == st.session_state.user_id]['rating'].values
+                    st.session_state.old_ratings = {k: v for k, v in zip(st.session_state.model.data[st.session_state.model.data['user_id'] == st.session_state.user_id]['book_id'].values, st.session_state.old_ratings)}
+                    st.session_state.random_books = st.session_state.book_data[~st.session_state.book_data['book_id'].isin(st.session_state.old_ratings.keys())].sample(10)
+                    if len(st.session_state.old_ratings) < 5:
                         st.session_state.view = "rate"
                     else:
                         st.session_state.view = "recommend"
@@ -91,7 +95,7 @@ def login():
                         # most_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
                         #eliminate the books that are highest rated or most rated
                         # st.session_state.predict = [book for book in st.session_state.predict if book[0] not in highest_rated_books and book[0] not in most_rated_books]
-                        st.session_state.predict = [book for book in st.session_state.predict if st.session_state.model.data[st.session_state.model.data['book_id']==book[0]]['rating'].mean() < 4.2]
+                        # st.session_state.predict = [book for book in st.session_state.predict if st.session_state.model.data[st.session_state.model.data['book_id']==book[0]]['rating'].mean() < 4.2]
                     st.rerun()
             # if user and user["password"] == password:
             #     st.session_state.current_user = username
@@ -161,7 +165,7 @@ def rating_screen():
     if search_term:
         books_to_show = st.session_state.book_data[st.session_state.book_data['title'].str.contains(search_term, case=False)]
         #take 10 random books from the filtered data that have not been rated
-        st.session_state.random_books = st.session_state.book_data[~st.session_state.book_data['book_id'].isin(st.session_state.ratings.keys())].sample(10)
+        st.session_state.random_books = st.session_state.book_data[~st.session_state.book_data['book_id'].isin(st.session_state.old_ratings.keys())].sample(10)
     else:
         # st.session_state.random_books = st.session_state.book_data[~st.session_state.book_data['book_id'].isin(st.session_state.ratings.keys())].sample(10)
         books_to_show = st.session_state.random_books
@@ -173,7 +177,7 @@ def rating_screen():
         st.markdown(f"<div style='font-size:15px'>Average Rating: {st.session_state.model.data[st.session_state.model.data['book_id']==book['book_id']]['rating'].mean():.2f}</div>", unsafe_allow_html=True)
         st.markdown(f"<div style='font-size:14px; color:gray;'>{book['description']}</div>", unsafe_allow_html=True)
         book_id = book["book_id"]
-        initial_rating = st.session_state.ratings.get(book_id, 0)
+        initial_rating = st.session_state.old_ratings.get(book_id, 0)
         slider_key = f"rating_{book['book_id']}"
         rating_value = st.slider(
                             f"Rate {book['title']}", 
@@ -187,7 +191,7 @@ def rating_screen():
     
     if st.button("Reload Books"):
         del st.session_state.random_books
-        st.session_state.random_books = st.session_state.book_data[~st.session_state.book_data['book_id'].isin(st.session_state.ratings.keys())].sample(10)
+        st.session_state.random_books = st.session_state.book_data[~st.session_state.book_data['book_id'].isin(list(st.session_state.ratings.keys())+list(st.session_state.old_ratings.keys()))].sample(10)
         st.session_state.view = "rate"
         st.rerun()
     if st.button("Submit Ratings"):
@@ -209,23 +213,30 @@ def rating_screen():
                     writer.writerow([st.session_state.model.data.shape[0]+i+1]+data.values.tolist())
     if st.button("Get Recommendations"):
         st.success("Thank you! Generating recommendations...")
-        if st.session_state.new_user:
+        # if st.session_state.new_user:
 
-            # df.columns = ['No_care', 'user_id', 'book_id', 'rating']
+        #     # df.columns = ['No_care', 'user_id', 'book_id', 'rating']
 
-            # dfbooks = pd.read_csv('../Data/final_books.csv')
-            # dfratings = pd.read_csv('../Data/interaction.csv')
-            finalbooks, finalratings, userid_dict = preprocess_data(st.session_state.book_data, st.session_state.model.data)
-            tf_idf_model = train_tf_idf(finalbooks, st.session_state.model.data, userid_dict)
-            st.session_state.predict = tf_idf_model.predict_new_user(st.session_state.new_data, k=100)
-            st.session_state.model.update_user(st.session_state.new_data, learning_rate=0.0001, epochs=15, batch_size=4, save_path='weights/new_NeuMF.weights.h5')
-            st.session_state.new_user = False
-        else:
-            st.session_state.predict = st.session_state.model.get_top_k_recommendations(st.session_state.user_id, k=1000)
-            # highest_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
-            # most_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
-            #eliminate the books that are highest rated or most rated
-            st.session_state.predict = [book for book in st.session_state.predict if st.session_state.model.data[st.session_state.model.data['book_id']==book[0]]['rating'].mean() < 4.2]
+        #     # dfbooks = pd.read_csv('../Data/final_books.csv')
+        #     # dfratings = pd.read_csv('../Data/interaction.csv')
+        #     # finalbooks, finalratings, userid_dict = preprocess_data(st.session_state.book_data, st.session_state.model.data)
+        #     # tf_idf_model = train_tf_idf(finalbooks, st.session_state.model.data, userid_dict)
+        #     # st.session_state.predict = tf_idf_model.predict_new_user(st.session_state.new_data, k=100)
+        #     st.session_state.model.update_user(True, st.session_state.new_data, learning_rate=0.0001, epochs=15, batch_size=4, save_path='weights/new_non_biased_NeuMF.weights.h5')
+        #     st.session_state.new_user = False
+        # else:
+        # new_data = st.session_state.new_data.merge(st.session_state.model.books, on='book_id')
+        # new_data['user'] = new_data['user_id'].map(st.session_state.model.user_map)
+        # new_data['book'] = new_data['book_id'].map(lambda x: st.session_state.model.book_encoder.transform([x])[0])
+        # _, _, train_data, val_data = split_data(new_data, st.session_state.model.genre_columns, test_size=0.2)
+        # train_model(st.session_state.model.model, train_data, val_data,
+        #             epochs=15, batch_size=4, learning_rate=0.0001, save_path='weights/new_non_biased_NeuMF.weights.h5')
+        st.session_state.model.update_user(st.session_state.new_user, st.session_state.new_data, learning_rate=0.001, epochs=15, batch_size=4, save_path='weights/new_non_biased_NeuMF.weights.h5')
+        st.session_state.predict = st.session_state.model.get_top_k_recommendations(st.session_state.user_id, k=20)
+        # highest_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
+        # most_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
+        #eliminate the books that are highest rated or most rated
+        # st.session_state.predict = [book for book in st.session_state.predict if st.session_state.model.data[st.session_state.model.data['book_id']==book[0]]['rating'].mean() < 4.2]
         st.session_state.predict = make_recommendations()
         st.session_state.view = "recommend"
         st.rerun()
@@ -286,6 +297,7 @@ def recommendation_screen():
                         st.markdown(f"<div style='font-size:14px; color:gray;'>{book_description}</div>", unsafe_allow_html=True)
 
     st.subheader(f"Hi {st.session_state.current_user["username"].values[0]}, you might like:")
+    st.session_state.new_user = False
     if st.button("🔄 Go back and rate more books"):
         st.session_state.view = "rate"
         st.session_state.random_books = st.session_state.book_data.sample(10)
@@ -295,7 +307,8 @@ def recommendation_screen():
     if st.button("Logout"):
         keys_to_clear = [
             "current_user", "user_id", "ratings", "predict",
-            "random_books", "view", "new_user", "new_data"
+            "random_books", "view", "new_user", "new_data", 
+            "old_ratings"
         ]
         st.session_state.view = "login"
         for key in keys_to_clear:
@@ -311,7 +324,7 @@ def main():
         signup()
     else:
         user_data = st.session_state.model.data[st.session_state.model.data['user_id'] == st.session_state.user_id]
-        if user_data.shape[0] == 0 or len(st.session_state.ratings) < 5 or st.session_state.view == "rate":
+        if user_data.shape[0] == 0 or (len(st.session_state.old_ratings)+len(st.session_state.ratings)) < 5 or st.session_state.view == "rate":
             rating_screen()
         else:
             # st.session_state.predict = st.session_state.model.get_top_k_recommendations(st.session_state.user_id, k=100)
