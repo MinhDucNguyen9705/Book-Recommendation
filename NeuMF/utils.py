@@ -28,7 +28,7 @@ def preprocess_data(ratings, books):
     genre_encoded = genre_encoder.transform(books[['most_tagged']])
     genre_columns = genre_encoder.get_feature_names_out(['most_tagged'])
     genre_df = pd.DataFrame(genre_encoded, columns=genre_columns, index=books.index)
-    books = pd.concat([books.drop(columns=['most_tagged']), genre_df], axis=1)
+    books = pd.concat([books, genre_df], axis=1)
 
     return ratings, books, user_encoder, book_encoder, genre_encoder, genre_columns
 
