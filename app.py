@@ -32,7 +32,7 @@ if "predict" not in st.session_state:
 
 if "model" not in st.session_state:
     st.session_state.model = NeuralMatrixFactoration(
-                                weight_path="weights/new_non_biased_NeuMF.weights.h5",
+                                weight_path="weights/new_non_biases_NeuMF.weights.h5",
                                 interaction_file="Data/interaction.csv",
                                 book_file="Data/final_books.csv"
                             )
@@ -213,30 +213,9 @@ def rating_screen():
                     writer.writerow([st.session_state.model.data.shape[0]+i+1]+data.values.tolist())
     if st.button("Get Recommendations"):
         st.success("Thank you! Generating recommendations...")
-        # if st.session_state.new_user:
-
-        #     # df.columns = ['No_care', 'user_id', 'book_id', 'rating']
-
-        #     # dfbooks = pd.read_csv('../Data/final_books.csv')
-        #     # dfratings = pd.read_csv('../Data/interaction.csv')
-        #     # finalbooks, finalratings, userid_dict = preprocess_data(st.session_state.book_data, st.session_state.model.data)
-        #     # tf_idf_model = train_tf_idf(finalbooks, st.session_state.model.data, userid_dict)
-        #     # st.session_state.predict = tf_idf_model.predict_new_user(st.session_state.new_data, k=100)
-        #     st.session_state.model.update_user(True, st.session_state.new_data, learning_rate=0.0001, epochs=15, batch_size=4, save_path='weights/new_non_biased_NeuMF.weights.h5')
-        #     st.session_state.new_user = False
-        # else:
-        # new_data = st.session_state.new_data.merge(st.session_state.model.books, on='book_id')
-        # new_data['user'] = new_data['user_id'].map(st.session_state.model.user_map)
-        # new_data['book'] = new_data['book_id'].map(lambda x: st.session_state.model.book_encoder.transform([x])[0])
-        # _, _, train_data, val_data = split_data(new_data, st.session_state.model.genre_columns, test_size=0.2)
-        # train_model(st.session_state.model.model, train_data, val_data,
-        #             epochs=15, batch_size=4, learning_rate=0.0001, save_path='weights/new_non_biased_NeuMF.weights.h5')
-        st.session_state.model.update_user(st.session_state.new_user, st.session_state.new_data, learning_rate=0.001, epochs=15, batch_size=4, save_path='weights/new_non_biased_NeuMF.weights.h5')
+        if st.session_state.new_data.shape[0] > 0:
+            st.session_state.model.update_user(st.session_state.new_user, st.session_state.new_data, learning_rate=0.001, epochs=15, batch_size=4, save_path='weights/new_non_biases_NeuMF.weights.h5')
         st.session_state.predict = st.session_state.model.get_top_k_recommendations(st.session_state.user_id, k=20)
-        # highest_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
-        # most_rated_books = st.session_state.model.data.groupby('book_id')['rating'].mean().sort_values(ascending=False).index[:50]
-        #eliminate the books that are highest rated or most rated
-        # st.session_state.predict = [book for book in st.session_state.predict if st.session_state.model.data[st.session_state.model.data['book_id']==book[0]]['rating'].mean() < 4.2]
         st.session_state.predict = make_recommendations()
         st.session_state.view = "recommend"
         st.rerun()
@@ -258,7 +237,6 @@ def recommendation_screen():
     for pair in book_pairs:
         col1, col2 = st.columns(2)
 
-        # First book in the row
         with col1:
             if len(pair) > 0:
                 book_id = pair[0][0]
@@ -277,7 +255,6 @@ def recommendation_screen():
                         st.markdown(f"<div style='font-size:15px'>Average Rating: {book_avg_rating:.2f}</div>", unsafe_allow_html=True)
                         st.markdown(f"<div style='font-size:14px; color:gray;'>{book_description}</div>", unsafe_allow_html=True)
 
-        # Second book in the row
         with col2:
             if len(pair) > 1:
                 book_id = pair[1][0]
